@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Адаптивная память в прогнозе волатильности — Бондаренко Д. Д., БГУ</title>
+<meta name="description" content="Персональный сайт по магистерскому исследованию: нестационарная длинная память волатильности, адаптивное внимание трансформеров, оценка рыночного риска VaR/ES.">
+<style>
+  :root { --tex: url('bg_texture.png'); }
+
+  :root {
+    --blue: #255C8B;
+    --blue-dark: #0E4B74;
+    --blue-mid: #4A8FC7;
+    --blue-soft: #7FB2D9;
+    --blue-pale: #E8F0F7;
+    --blue-wash: #F4F8FB;
+    --ink: #1F1F1F;
+    --muted: #55677A;
+    --dim: #8A9AAA;
+    --line: #CBDCEA;
+    --white: #ffffff;
+    --radius: 14px;
+    --shadow: 0 18px 44px rgba(23, 58, 87, .10);
+    --mono: "Cascadia Code", Consolas, "SF Mono", Menlo, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+  body {
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+    background: #F6F9FB var(--tex) fixed center top / 2400px auto repeat-y;
+    color: var(--ink);
+    line-height: 1.68;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none;
+    background: linear-gradient(180deg, rgba(246,249,251,.86), rgba(255,255,255,.92) 30%, rgba(255,255,255,.95));
+  }
+  body::after {
+    content: ""; position: fixed; left: 0; top: 0; width: 100%; height: 54px; z-index: -1;
+    background: var(--blue);
+    clip-path: polygon(6% 0, 100% 0, 93% 100%, 0 100%);
+    opacity: .96;
+  }
+  a { color: var(--blue); }
+
+  /* ---------- ШАПКА / HERO ---------- */
+  header {
+    position: relative; padding: 92px 1.5rem 3.2rem; text-align: center;
+  }
+  .org-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;
+    max-width: 1180px; margin: 0 auto 3.2rem;
+  }
+  .org-row img { height: 52px; }
+  .org { font-size: .78rem; line-height: 1.45; color: var(--blue); font-weight: 700; text-transform: uppercase; }
+  .org span { display: block; font-weight: 400; text-transform: none; }
+  header .kind {
+    font-size: 1.6rem; font-weight: 700; color: var(--blue); letter-spacing: .06em; margin-bottom: 1.1rem;
+  }
+  header h1 {
+    font-size: clamp(1.7rem, 3.6vw, 2.65rem); font-weight: 700; color: var(--blue);
+    line-height: 1.24; max-width: 980px; margin: 0 auto 1.2rem;
+  }
+  header .sub { color: var(--muted); max-width: 720px; margin: 0 auto; font-size: 1rem; }
+  .chips { margin-top: 2rem; display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap; }
+  .chip {
+    display: inline-flex; align-items: center; gap: .5rem; padding: .42rem .95rem;
+    border-radius: 999px; font-size: .85rem; color: var(--blue);
+    border: 1px solid var(--line); background: var(--white);
+  }
+  .chip i { width: 7px; height: 7px; border-radius: 50%; background: var(--blue-mid); }
+  .cta { margin-top: 2rem; display: flex; gap: .8rem; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: .5rem; padding: .7rem 1.5rem; border-radius: 999px;
+    text-decoration: none; font-size: .93rem; font-weight: 600; color: var(--white); background: var(--blue);
+    border: 1px solid var(--blue); transition: .2s;
+  }
+  .btn:hover { background: var(--blue-dark); border-color: var(--blue-dark); }
+  .btn.ghost { background: transparent; color: var(--blue); }
+  .btn.ghost:hover { background: var(--blue-pale); }
+  .author {
+    max-width: 1180px; margin: 3rem auto 0; padding-top: 1.4rem; border-top: 1px solid var(--line);
+    display: flex; justify-content: flex-end; gap: 2.5rem; flex-wrap: wrap; text-align: left;
+  }
+  .author div { font-size: .9rem; color: var(--ink); }
+  .author span { display: block; color: var(--muted); font-size: .85rem; }
+
+  /* ---------- НАВИГАЦИЯ ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 40; background: rgba(255,255,255,.93);
+    backdrop-filter: blur(10px); border-bottom: 1px solid var(--line);
+  }
+  nav ul { max-width: 1180px; margin: 0 auto; padding: 0 1.2rem; display: flex; gap: .2rem; flex-wrap: wrap; list-style: none; }
+  nav li { list-style: none; }
+  nav a {
+    display: block; padding: .85rem .95rem; font-size: .89rem; color: var(--muted);
+    text-decoration: none; border-bottom: 3px solid transparent; transition: .18s;
+  }
+  nav a:hover { color: var(--blue); }
+  nav a.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+
+  /* ---------- СЕКЦИИ ---------- */
+  main { max-width: 1180px; margin: 0 auto; padding: 0 1.2rem 4rem; }
+  section { padding: 3.4rem 0 1.6rem; }
+  section + section { border-top: 1px solid var(--line); }
+  .sec-head { text-align: center; margin-bottom: 2rem; }
+  .sec-head h2 { font-size: clamp(1.5rem, 2.9vw, 2.05rem); font-weight: 700; color: var(--blue); }
+  .sec-head .num {
+    display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px;
+    border-radius: 50%; background: var(--blue); color: #fff; font-weight: 700; font-size: .95rem; margin-bottom: .8rem;
+  }
+  .sec-head .rule { width: 86px; height: 3px; background: var(--blue); margin: .9rem auto 0; border-radius: 2px; }
+  h3 { font-size: 1.1rem; color: var(--blue); margin: 2.2rem 0 .7rem; font-weight: 700; }
+  h3:first-child { margin-top: 0; }
+  p { max-width: 860px; color: var(--ink); }
+  p + p { margin-top: .8rem; }
+  .lead { font-size: 1.02rem; }
+
+  /* ---------- КАРТОЧКИ ---------- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-top: 1.4rem; }
+  .card {
+    background: var(--white); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 1.25rem 1.35rem; box-shadow: var(--shadow);
+  }
+  .card h4 { font-size: 1rem; color: var(--blue); margin-bottom: .45rem; font-weight: 700; }
+  .card p { font-size: .93rem; color: var(--muted); }
+  .card.dark { background: var(--blue-dark); border-color: var(--blue-dark); }
+  .card.dark h4 { color: #fff; }
+  .card.dark p { color: #D7E5F0; }
+
+  .highlight {
+    background: var(--blue-wash); border-left: 4px solid var(--blue); border-radius: 10px;
+    padding: 1.1rem 1.35rem; margin: 1.5rem 0;
+  }
+  .highlight p { font-size: 1rem; }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: .9rem; margin: 1.6rem 0; }
+  .stat { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.1rem; text-align: center; }
+  .stat .value { font-size: 2rem; font-weight: 700; color: var(--blue); line-height: 1.1; }
+  .stat .label { font-size: .84rem; color: var(--muted); margin-top: .3rem; }
+  .stat.dark { background: var(--blue); border-color: var(--blue); }
+  .stat.dark .value { color: #fff; }
+  .stat.dark .label { color: #DCE8F2; }
+
+  /* ---------- ФОРМУЛЫ ---------- */
+  .formula {
+    background: var(--white); border: 1px solid var(--line); border-left: 4px solid var(--blue-soft);
+    border-radius: 10px; padding: 1.05rem 1.35rem; margin: 1.1rem 0;
+    font-family: "Cambria Math", Cambria, Georgia, serif; font-size: 1.12rem; color: #1B3A57;
+    display: flex; align-items: baseline; gap: .8rem; flex-wrap: wrap;
+  }
+  .formula img { max-width: 100%; height: auto; }
+  .formula .eq { color: var(--dim); font-size: .92rem; margin-left: auto; }
+  .formula .lbl { display: block; flex-basis: 100%; font-family: "Segoe UI", sans-serif; font-size: .86rem; color: var(--muted); margin-top: .3rem; }
+
+  /* ---------- ДЕМО-БЛОКИ ---------- */
+  .demo { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.4rem 1.5rem 1.6rem; margin: 1.4rem 0; box-shadow: var(--shadow); }
+  .demo-head { display: flex; justify-content: space-between; align-items: baseline; gap: .8rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .demo-head h4 { font-size: 1.05rem; color: var(--blue); font-weight: 700; }
+  .demo-head p { font-size: .86rem; color: var(--muted); }
+  .mode { font-size: .86rem; font-weight: 700; padding: .3rem .8rem; border-radius: 999px; background: var(--blue-pale); color: var(--blue); }
+  .divider { height: 1px; background: var(--line); margin: 1.1rem 0; }
+  .head-row { display: grid; grid-template-columns: 175px 1fr; gap: 1rem; align-items: center; margin: .75rem 0; }
+  .head-label { font-size: .83rem; color: var(--muted); line-height: 1.35; }
+  .head-label b { display: block; color: var(--ink); font-size: .88rem; }
+  .head-label .tag { display: inline-block; margin-top: .2rem; font-size: .72rem; padding: .12rem .55rem; border-radius: 999px; border: 1px solid var(--line); color: var(--blue); background: var(--blue-wash); }
+  .bars-row { display: flex; align-items: flex-end; gap: 2px; height: 58px; }
+  .bars-row .bar { flex: 1; border-radius: 2px 2px 0 0; transform-origin: bottom; transition: height .3s ease, opacity .3s; }
+  .axis { display: flex; justify-content: space-between; color: var(--dim); font-size: .75rem; margin: .2rem 0 .5rem 175px; }
+  .slider-row { display: flex; align-items: center; gap: 1rem; margin-top: .6rem; flex-wrap: wrap; }
+  input[type=range] {
+    -webkit-appearance: none; appearance: none; flex: 1; min-width: 170px; height: 6px; border-radius: 999px;
+    background: linear-gradient(90deg, var(--blue-soft), var(--blue)); outline: none; cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #fff;
+    border: 3px solid var(--blue); cursor: pointer; box-shadow: 0 3px 10px rgba(23,58,87,.28);
+  }
+  .slider-val { font-size: 1rem; font-weight: 700; color: var(--blue); min-width: 3rem; text-align: center; }
+
+  /* ---------- ВКЛАДКИ / КНОПКИ ---------- */
+  .tabs { display: flex; gap: .45rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+  .tab {
+    padding: .5rem 1.2rem; border-radius: 999px; border: 1px solid var(--line);
+    background: var(--white); color: var(--muted); cursor: pointer; font-size: .9rem; transition: .18s;
+  }
+  .tab:hover { color: var(--blue); border-color: var(--blue-soft); }
+  .tab.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fade .3s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .chart-controls { display: flex; gap: .45rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+  .metric-btn { padding: .45rem 1rem; border-radius: 999px; border: 1px solid var(--line); background: var(--white); color: var(--muted); cursor: pointer; font-size: .87rem; transition: .18s; }
+  .metric-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+  .toggle-group { display: flex; gap: .5rem; flex-wrap: wrap; margin: .6rem 0 1.3rem; }
+  .toggle {
+    display: flex; align-items: center; gap: .45rem; cursor: pointer; font-size: .86rem; color: var(--dim);
+    padding: .34rem .8rem; border-radius: 999px; border: 1px solid var(--line); background: var(--white); transition: .18s;
+  }
+  .toggle.on { color: var(--blue); border-color: var(--blue-soft); background: var(--blue-wash); }
+  .toggle input { accent-color: var(--blue); }
+  .chart { margin-top: 1rem; }
+  .chart-row { display: grid; grid-template-columns: 210px 1fr 74px; gap: 1rem; align-items: center; margin: .55rem 0; }
+  .chart-row .name { font-size: .87rem; color: var(--ink); text-align: right; line-height: 1.25; }
+  .chart-row .track { background: var(--blue-wash); border-radius: 7px; height: 22px; overflow: hidden; border: 1px solid var(--line); }
+  .chart-row .fill { height: 100%; border-radius: 7px; transition: width .5s ease; }
+  .chart-row .val { font-size: .87rem; color: var(--ink); font-weight: 700; }
+  .chart-note { font-size: .82rem; color: var(--dim); margin-top: .7rem; }
+
+  /* ---------- ТАЙМЛАЙН ---------- */
+  .timeline { position: relative; margin: 1.6rem 0 1rem; padding-left: 2.1rem; }
+  .timeline::before { content: ""; position: absolute; left: 11px; top: 10px; bottom: 10px; width: 2px; background: var(--blue-soft); }
+  .tl-item { position: relative; margin-bottom: 1.5rem; }
+  .tl-item:last-child { margin-bottom: 0; }
+  .tl-item::before {
+    content: attr(data-n); position: absolute; left: -2.1rem; top: .1rem; width: 24px; height: 24px; border-radius: 50%;
+    background: var(--blue); color: #fff; font-size: .74rem; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tl-item h4 { font-size: 1rem; color: var(--blue); margin-bottom: .2rem; font-weight: 700; }
+  .tl-item p { font-size: .92rem; color: var(--muted); }
+
+  /* ---------- РИСУНКИ / ТАБЛИЦЫ ---------- */
+  .fig-card {
+    background: var(--white); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 1rem 1.1rem .9rem; margin: 1.2rem 0; box-shadow: var(--shadow);
+  }
+  .fig-card img { width: 100%; height: auto; display: block; }
+  .fig-card figcaption { font-size: .86rem; color: var(--blue); margin-top: .7rem; font-style: italic; }
+  .tbl-wrap { overflow-x: auto; margin: 1.2rem 0; }
+  table { width: 100%; border-collapse: collapse; background: var(--white); font-size: .9rem; }
+  th { background: var(--blue); color: #fff; font-weight: 600; padding: .6rem .8rem; text-align: center; border: 1px solid var(--blue-dark); }
+  td { padding: .52rem .8rem; text-align: center; border: 1px solid var(--blue-soft); color: var(--ink); }
+  tbody tr:nth-child(even) { background: var(--blue-wash); }
+  td.good { color: var(--blue); font-weight: 700; }
+  td.bad { color: #B4553F; font-weight: 700; }
+
+  /* ---------- ИСТОЧНИКИ ---------- */
+  .refs { list-style: none; counter-reset: ref; display: grid; gap: .6rem; }
+  .refs li {
+    counter-increment: ref; position: relative; padding-left: 2.5rem; color: var(--muted);
+    font-size: .89rem; line-height: 1.55;
+  }
+  .refs li::before {
+    content: counter(ref); position: absolute; left: 0; top: .02rem; width: 1.7rem; height: 1.7rem;
+    border-radius: 50%; background: var(--blue-pale); border: 1px solid var(--blue-soft);
+    color: var(--blue); font-size: .78rem; font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ---------- ТЁМНЫЙ ФИНАЛ ---------- */
+  section.dark {
+    background: var(--blue); border-radius: 18px; padding: 2.6rem 2.2rem; margin-top: 2rem;
+    border-top: none; color: #fff;
+  }
+  section.dark h2, section.dark h3 { color: #fff; }
+  section.dark .sec-head h2 { color: #fff; }
+  section.dark .sec-head .num { background: #fff; color: var(--blue); }
+  section.dark .sec-head .rule { background: #fff; }
+  section.dark p { color: #DCE8F2; }
+  section.dark .card { background: rgba(255,255,255,.10); border-color: rgba(255,255,255,.25); box-shadow: none; }
+  section.dark .card h4 { color: #fff; }
+  section.dark .card p { color: #DCE8F2; }
+
+  /* ---------- ПОДВАЛ ---------- */
+  footer {
+    background: var(--blue-wash); border-top: 1px solid var(--line);
+    padding: 2.4rem 1.5rem 2.8rem; text-align: center; margin-top: 2rem;
+  }
+  footer .f-title { font-weight: 700; color: var(--blue); margin-bottom: .3rem; }
+  footer p { color: var(--muted); font-size: .88rem; margin: .2rem 0; }
+  footer .links { margin-top: 1rem; display: flex; gap: .7rem; justify-content: center; flex-wrap: wrap; }
+  footer .links a {
+    font-size: .85rem; text-decoration: none; color: var(--blue); padding: .4rem 1rem;
+    border: 1px solid var(--line); border-radius: 999px; background: var(--white); transition: .18s;
+  }
+  footer .links a:hover { border-color: var(--blue); }
+
+  .reveal { opacity: 0; transform: translateY(22px); transition: opacity .6s ease, transform .6s ease; }
+  .reveal.visible { opacity: 1; transform: none; }
+
+  @media (max-width: 720px) {
+    header { padding-top: 78px; }
+    .org-row { flex-direction: column; gap: 1rem; }
+    .org-row img { height: 40px; }
+    .author { justify-content: flex-start; }
+    .head-row { grid-template-columns: 1fr; gap: .25rem; }
+    .axis { margin-left: 0; }
+    .chart-row { grid-template-columns: 130px 1fr 56px; gap: .5rem; }
+    .chart-row .name { font-size: .8rem; }
+  }
+
+</style>
+</head>
+<body>
+
+<header>
+  <div class="org-row">
+    <img src="logo_bgu.png" alt="БГУ">
+    <div class="org">
+      Министерство образования Республики Беларусь
+      Белорусский государственный университет
+      Факультет прикладной математики и информатики
+      <span>Кафедра теории вероятностей и математической статистики</span>
+    </div>
+    <img src="logo_fpmi.png" alt="ФПМИ">
+  </div>
+  <div class="kind">РЕФЕРАТ</div>
+  <h1>Трансформерные архитектуры с адаптивным механизмом длинной памяти для прогнозирования волатильности финансовых временных рядов и оценки рыночного риска</h1>
+  <p class="sub">Информационные технологии анализа нестационарной длинной памяти в волатильности и построения адаптивного внимания трансформерных моделей.</p>
+  <div class="chips">
+    <span class="chip"><i></i>10 активов · 2019–2023</span>
+    <span class="chip"><i></i>R/S · GPH · CUSUM</span>
+    <span class="chip"><i></i>Python · PyTorch</span>
+  </div>
+  <div class="cta">
+    <a class="btn" href="#results">Смотреть результаты</a>
+    <a class="btn ghost" href="#risk">Интерактив VaR / ES</a>
+  </div>
+  <div class="author">
+    <div>Магистрантка Бондаренко Дарья Дмитриевна<span>Факультет прикладной математики и информатики</span></div>
+    <div>Научный руководитель<span>С. Н. Сталевская, кандидат физико-математических наук</span></div>
+  </div>
+</header>
+
+<nav>
+  <ul>
+    <li><a href="#about">О работе</a></li>
+    <li><a href="#methods">Методы</a></li>
+    <li><a href="#results">Результаты</a></li>
+    <li><a href="#risk">Оценка риска</a></li>
+    <li><a href="#value">Практическая значимость</a></li>
+    <li><a href="#conclusions">Выводы</a></li>
+    <li><a href="#sources">Источники</a></li>
+  </ul>
+</nav>
+
+<main>
+
+  <!-- ===================== О РАБОТЕ ===================== -->
+  <section id="about" class="reveal">
+    <div class="sec-head">
+      <span class="num">01</span>
+      <h2>О работе</h2>
+      <div class="rule"></div>
+    </div>
+    <p class="lead">Волатильность — мера колебаний цены — лежит в основе оценки рыночного риска (VaR, ES), резервирования капитала и ценообразования производных инструментов. Инструменты, способные её прогнозировать, — это и есть информационные технологии финансового анализа.</p>
+    <p>Особенность волатильности — <strong>длинная память</strong>: автокорреляции затухают по степенному закону, поэтому влияние прошлого сохраняется на больших горизонтах. При этом <strong>сила памяти не постоянна</strong> — она меняется от режима к режиму и схлопывается в кризисы.</p>
+
+    <div class="highlight">
+      <p>Цель — разработать и обосновать архитектуру трансформера с адаптивным механизмом долгосрочной памяти (Memory-Adaptive Attention) для повышения точности прогноза волатильности и качества оценки рыночного риска.</p>
+    </div>
+
+    <div class="timeline">
+      <div class="tl-item" data-n="1">
+        <h4>Локализация памяти</h4>
+        <p>Длинная память сосредоточена не в ценах и доходностях, а в волатильности: для реализованной волатильности d ∈ [0,42; 0,56] и H ≈ 0,90–0,95, тогда как для доходностей d ≈ 0.</p>
+      </div>
+      <div class="tl-item" data-n="2">
+        <h4>Нестационарность</h4>
+        <p>Скользящая оценка памяти и CUSUM-тест: структурные сдвиги у 7 из 10 активов, в кризисные периоды среднее d падает с 0,52 до 0,45.</p>
+      </div>
+      <div class="tl-item" data-n="3">
+        <h4>Прогностическая ценность</h4>
+        <p>Добавление признаков d̂_t и Δd̂_t к HAR-RV улучшает прогноз по MSE для всех 10 активов (+7,1 %) и по QLIKE для 8 из 10 (+1,8 %).</p>
+      </div>
+      <div class="tl-item" data-n="4">
+        <h4>Следствие для внимания</h4>
+        <p>Статичные схемы внимания деградируют при смене режима (ProbSparse: RMSE +143 %) — отсюда адаптивный механизм, управляемый локальной силой памяти.</p>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card"><h4>Актуальность</h4><p>Волатильность прогнозируется на всех горизонтах риск-менеджмента, а её структура меняется от режима к режиму.</p></div>
+      <div class="card"><h4>Объект</h4><p>Финансовые временные ряды и ряды реализованной волатильности с долгосрочной памятью.</p></div>
+      <div class="card"><h4>Предмет</h4><p>Статистические и нейросетевые технологии моделирования волатильности, адаптированные к изменяющейся памяти.</p></div>
+      <div class="card"><h4>Методы</h4><p>Анализ литературы, статистическое тестирование, моделирование, машинное обучение, сравнительный анализ.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== МЕТОДЫ ===================== -->
+  <section id="methods" class="reveal">
+    <div class="sec-head">
+      <span class="num">02</span>
+      <h2>Методы</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="stat">Статистические</button>
+      <button class="tab" data-tab="neural">Нейросетевые</button>
+    </div>
+
+    <div class="tab-panel active" id="panel-stat">
+      <div class="grid">
+        <div class="card"><h4>R/S-анализ Хёрста</h4><p>Оценка показателя H по нормированному размаху в двойных логарифмических координатах.</p></div>
+        <div class="card"><h4>Метод GPH</h4><p>Полупараметрическая оценка d регрессией логарифма периодограммы по низким частотам.</p></div>
+        <div class="card"><h4>Тест Ло</h4><p>Модификация R/S с ядром Ньюи–Уэста: устойчивость к краткосрочной зависимости.</p></div>
+        <div class="card"><h4>CUSUM-тест</h4><p>Обнаружение структурных сдвигов в траектории локальной памяти d(t).</p></div>
+      </div>
+      <div class="formula">
+        <img src="eq_memory.png" alt="rho(k) ≈ c·k^(2d−1)"> <span class="eq">(1)</span>
+        <span class="lbl">Степенное затухание автокорреляций при длинной памяти; d = H − 1/2</span>
+      </div>
+      <div class="formula">
+        <img src="eq_rv.png" alt="RV_t = sqrt(sum r^2)"> <span class="eq">(2)</span>
+        <span class="lbl">Реализованная волатильность по внутридневным доходностям</span>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-neural">
+      <h3>Самовнимание как обучаемая автокорреляционная функция</h3>
+      <p>Механизм самовнимания для каждой позиции вычисляет веса значимости всех остальных позиций независимо от временного расстояния — то есть строит <strong>обучаемую нелинейную автокорреляционную функцию</strong>. В многоголовом внимании разные головы специализируются на своих типах зависимостей.</p>
+      <div class="formula">
+        <img src="eq_attn.png" alt="Attention(Q, K, V) = softmax(QK^T/sqrt(d_k))V"> <span class="eq">(3)</span>
+        <span class="lbl">Механизм самовнимания трансформера</span>
+      </div>
+
+      <div class="demo">
+        <div class="demo-head">
+          <h4>Карты внимания четырёх голов</h4>
+          <p>Высота столбца — вес внимания по лагу прошлого.</p>
+        </div>
+        <div class="axis"><span>Недавнее прошлое</span><span>Далёкое прошлое</span></div>
+        <div class="head-row">
+          <div class="head-label"><b>Голова 1</b><span class="tag">краткосрочная</span></div>
+          <div class="bars-row" id="head1"></div>
+        </div>
+        <div class="head-row">
+          <div class="head-label"><b>Голова 2</b><span class="tag">долгосрочная память</span></div>
+          <div class="bars-row" id="head2"></div>
+        </div>
+        <div class="head-row">
+          <div class="head-label"><b>Голова 3</b><span class="tag">периодическая</span></div>
+          <div class="bars-row" id="head3"></div>
+        </div>
+        <div class="head-row">
+          <div class="head-label"><b>Голова 4</b><span class="tag">событийная</span></div>
+          <div class="bars-row" id="head4"></div>
+        </div>
+        <div class="divider"></div>
+        <div class="slider-row">
+          <span style="color:var(--muted); font-size:.88rem;">Локальная сила памяти d</span>
+          <input type="range" id="dSlider" min="0.05" max="0.49" step="0.01" value="0.45">
+          <span class="slider-val" id="dVal">0.45</span>
+        </div>
+        <p style="font-size:.85rem; color:var(--dim); margin:.8rem 0 0;">Голова 2 реагирует на d: чем выше d, тем шире распределение весов — так адаптивная схема внимания «догоняет» память процесса.</p>
+      </div>
+
+      <h3>От статичного к адаптивному вниманию</h3>
+      <p>Informer, Autoformer, PatchTST используют <strong>статичные</strong> схемы внимания: доля отбираемых связей и горизонт заданы заранее и не учитывают текущий режим. Предлагаемая конструкция модулирует внимание маской, управляемой локальной оценкой памяти:</p>
+      <div class="formula">
+        <img src="eq_mask.png" alt="Attention_t(Q, K, V) = softmax(QK^T/sqrt(d_k) ⊙ M(d_t))V"> <span class="eq">(4)</span>
+        <span class="lbl">Memory-Adaptive Attention: маска M расширяет охват контекста при высокой памяти и сужает при низкой</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== РЕЗУЛЬТАТЫ ===================== -->
+  <section id="results" class="reveal">
+    <div class="sec-head">
+      <span class="num">03</span>
+      <h2>Результаты</h2>
+      <div class="rule"></div>
+    </div>
+    <p class="lead">Эмпирическая база — 10 активов трёх классов (акции, криптоактивы, валютные пары) за 2019–2023 гг., включая кризисные эпизоды COVID-19 (2020), цикла ставок (2022) и банковского стресса (2023).</p>
+
+    <div class="stats">
+      <div class="stat dark"><div class="value" data-count="0.5" data-dec="2">0</div><div class="label">d в волатильности</div></div>
+      <div class="stat"><div class="value" data-count="7" data-dec="0">0</div><div class="label">активов со сдвигом (из 10)</div></div>
+      <div class="stat"><div class="value" data-count="7.1" data-dec="1">0</div><div class="label">прирост MSE, %</div></div>
+      <div class="stat"><div class="value" data-count="1.8" data-dec="1">0</div><div class="label">прирост QLIKE, %</div></div>
+    </div>
+
+    <h3>Сравнение моделей — включите нужные</h3>
+    <p>Переключайте метрику и отмечайте модели для сравнения. Для RMSE и MAE меньше — лучше, для R² и направленной точности — больше.</p>
+
+    <div class="demo">
+      <div class="chart-controls">
+        <button class="metric-btn active" data-metric="rmse">RMSE</button>
+        <button class="metric-btn" data-metric="mae">MAE</button>
+        <button class="metric-btn" data-metric="r2">R²</button>
+        <button class="metric-btn" data-metric="da">DA, %</button>
+      </div>
+      <div class="toggle-group" id="toggles"></div>
+      <div class="chart" id="chart"></div>
+      <p class="chart-note" id="chartNote"></p>
+    </div>
+
+    <h3>Локализация памяти</h3>
+    <p>Средние оценки d для трёх рядов каждого актива: доходности, их абсолютного значения и реализованной волатильности. Только для волатильности память устойчиво высока.</p>
+    <figure class="fig-card">
+      <img src="fig_memory_localization.png" alt="Локализация длинной памяти">
+      <figcaption>Рисунок 1 — Локализация длинной памяти: средние оценки d для доходностей и волатильности</figcaption>
+    </figure>
+
+    <h3>Нестационарность и кризисные режимы</h3>
+    <p>В цикл повышения ставок 2022 года траектории d(t) для акций и валютных пар синхронно опускаются с 0,65–0,75 до 0,30–0,45 — память «схлопывается» на фоне кризиса.</p>
+    <figure class="fig-card">
+      <img src="paper_memory.png" alt="Скользящие оценки d(t) и H(t)">
+      <figcaption>Рисунок 2 — Скользящие оценки параметра d и показателя Хёрста H (красным — кризисные периоды)</figcaption>
+    </figure>
+    <figure class="fig-card">
+      <img src="fig_crisis.png" alt="Память в кризисные и спокойные периоды">
+      <figcaption>Рисунок 3 — Средняя память в кризисные и спокойные периоды (звёздочка — значимый сдвиг)</figcaption>
+    </figure>
+
+    <h3>Прогностическая ценность локальной памяти</h3>
+    <p>HAR-RV с признаками уровня d̂_t и его приращения: улучшение по MSE — для всех 10 активов, по QLIKE — для 8 из 10.</p>
+    <figure class="fig-card">
+      <img src="fig_har_improvement.png" alt="Улучшение HAR-RV">
+      <figcaption>Рисунок 4 — Улучшение прогноза HAR-RV при добавлении признаков локальной памяти</figcaption>
+    </figure>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Актив</th><th>ΔMSE, %</th><th>ΔQLIKE, %</th></tr></thead>
+        <tbody>
+          <tr><td>META</td><td class="good">+26.9</td><td class="good">+3.8</td></tr>
+          <tr><td>BA</td><td class="good">+1.0</td><td class="good">+0.6</td></tr>
+          <tr><td>JPM</td><td class="good">+1.0</td><td class="good">+4.1</td></tr>
+          <tr><td>AAPL</td><td class="good">+2.2</td><td class="good">+0.9</td></tr>
+          <tr><td>MSFT</td><td class="good">+0.3</td><td class="bad">−5.7</td></tr>
+          <tr><td>BTC</td><td class="good">+16.1</td><td class="good">+5.4</td></tr>
+          <tr><td>ETH</td><td class="good">+2.4</td><td class="good">+2.1</td></tr>
+          <tr><td>EURUSD</td><td class="good">+8.5</td><td class="good">+3.8</td></tr>
+          <tr><td>USDJPY</td><td class="good">+6.4</td><td class="good">+3.1</td></tr>
+          <tr><td>GBPUSD</td><td class="good">+5.8</td><td class="bad">−0.3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Сравнение механизмов внимания</h3>
+    <p>Три архитектуры обучены на одном наборе данных и оценены отдельно в режимах низкой и высокой локальной памяти d(t).</p>
+    <figure class="fig-card">
+      <img src="fig_attention_deg.png" alt="Деградация механизмов внимания">
+      <figcaption>Рисунок 5 — Деградация статичных механизмов внимания при усилении памяти</figcaption>
+    </figure>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Механизм</th><th>RMSE (низкая память)</th><th>RMSE (высокая память)</th><th>Деградация, %</th></tr></thead>
+        <tbody>
+          <tr><td>Standard (полное внимание)</td><td>1.078</td><td>1.628</td><td class="bad">+51</td></tr>
+          <tr><td>ProbSparse (разреженное)</td><td>0.415</td><td>1.006</td><td class="bad">+143</td></tr>
+          <tr><td>MultiFeature (двухпутевое)</td><td>0.608</td><td>0.911</td><td class="good">+50</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== ОЦЕНКА РИСКА ===================== -->
+  <section id="risk" class="reveal">
+    <div class="sec-head">
+      <span class="num">04</span>
+      <h2>Оценка риска: интерактивный VaR / ES</h2>
+      <div class="rule"></div>
+    </div>
+    <p class="lead">Прогноз волатильности непосредственно задаёт оценку рыночного риска. Подвигайте ползунки: <strong>σ</strong> — ожидаемая дневная волатильность, <strong>α</strong> — уровень значимости. Распределение задаёт «тяжесть» хвоста: чем тяжелее хвост, тем дороже обходится редкий кризис.</p>
+
+    <div class="demo">
+      <div class="demo-head">
+        <h4>Квантили потерь</h4>
+        <span class="mode" id="varLabel">VaR = 1,65 %</span>
+      </div>
+      <div class="chart-row" style="grid-template-columns:160px 1fr 86px;">
+        <div class="name">σ (волатильность)</div>
+        <input type="range" id="sigma" min="0.5" max="3.5" step="0.05" value="1.2" style="width:100%;">
+        <div class="val" id="sigmaVal">1,2 %</div>
+      </div>
+      <div class="chart-row" style="grid-template-columns:160px 1fr 86px;">
+        <div class="name">α (уровень)</div>
+        <input type="range" id="alpha" min="1" max="10" step="0.5" value="5" style="width:100%;">
+        <div class="val" id="alphaVal">5 %</div>
+      </div>
+      <div class="tabs" style="margin-top:1.1rem;">
+        <button class="tab active" data-dist="normal">Нормальное</button>
+        <button class="tab" data-dist="t5">Хвосты: t(5)</button>
+        <button class="tab" data-dist="t3">Хвосты: t(3)</button>
+      </div>
+      <div class="stats" style="grid-template-columns:1fr 1fr;">
+        <div class="stat dark"><div class="value" id="varOut" style="font-size:1.8rem;">1.65 %</div><div class="label">VaR — потери, превышаемые с вероятностью α</div></div>
+        <div class="stat"><div class="value" id="esOut" style="font-size:1.8rem;">2.06 %</div><div class="label">ES — средние потери при превышении VaR</div></div>
+      </div>
+      <p style="font-size:.83rem; color:var(--dim); margin:.7rem 0 0;">Диагностическая иллюстрация по формулам нормального распределения и распределения Стьюдента; не является торговым калькулятором. Именно тяжёлые хвосты показывают, почему статические модели волатильности «не докладывают» риск.</p>
+    </div>
+  </section>
+
+  <!-- ===================== ПРАКТИЧЕСКАЯ ЗНАЧИМОСТЬ ===================== -->
+  <section id="value" class="reveal">
+    <div class="sec-head">
+      <span class="num">05</span>
+      <h2>Практическая значимость</h2>
+      <div class="rule"></div>
+    </div>
+    <p class="lead">Сайт — не витрина, а рабочий инструмент: он превращает результаты исследования в то, чем можно пользоваться на практике. Ниже — четыре сценария применения.</p>
+
+    <div class="grid">
+      <div class="card dark">
+        <h4>Риск-менеджеру</h4>
+        <p>Интерактивный расчёт <strong>VaR и ES</strong> по заданной волатильности и уровню значимости: за десятки секунд оценивается требуемый капитальный резерв. Переключение распределения показывает, почему при «тяжёлых» хвостах резерв, рассчитанный по нормальному приближению, оказывается заниженным.</p>
+      </div>
+      <div class="card">
+        <h4>Исследователю</h4>
+        <p>Воспроизводимый конвейер анализа (<strong>R/S, GPH, CUSUM</strong>) и открытый код в репозитории: любой результат работы можно проверить на собственных данных и продолжить исследование.</p>
+      </div>
+      <div class="card">
+        <h4>Разработчику ИТ</h4>
+        <p>Наглядная демонстрация <strong>адаптивного внимания</strong>: карты четырёх голов и ползунок силы памяти показывают, как схема внимания должна перестраиваться при смене режима — готовая иллюстрация для проектирования собственной модели.</p>
+      </div>
+      <div class="card">
+        <h4>Преподавателю</h4>
+        <p>Готовый демонстрационный материал для лекций и семинаров по информационным технологиям в финансах: длинная память, нестационарность, адаптивное внимание и оценка риска показаны на одном экране.</p>
+      </div>
+    </div>
+
+    <div class="timeline" style="margin-top:1.8rem;">
+      <div class="tl-item" data-n="1">
+        <h4>Шаг 1. Проверить выводы</h4>
+        <p>Открыть раздел «Результаты», переключить метрику и отключить лишние модели — видно, как меняется вывод при смене критерия качества.</p>
+      </div>
+      <div class="tl-item" data-n="2">
+        <h4>Шаг 2. Оценить риск</h4>
+        <p>Задать ожидаемую волатильность и уровень значимости, выбрать распределение с тяжёлым хвостом — получить VaR и ES вместе с их интерпретацией.</p>
+      </div>
+      <div class="tl-item" data-n="3">
+        <h4>Шаг 3. Воспроизвести расчёт</h4>
+        <p>Скачать код и данные из репозитория и повторить вычисления: результаты работы воспроизводятся без специальных настроек.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ВЫВОДЫ ===================== -->
+  <section id="conclusions" class="reveal dark">
+    <div class="sec-head">
+      <span class="num">06</span>
+      <h2>Выводы</h2>
+      <div class="rule"></div>
+    </div>
+    <div class="grid">
+      <div class="card"><h4>Память в волатильности</h4><p>Долгосрочная память локализована в волатильности (d ≈ 0,5) и существенно сильнее, чем в доходностях (d ≈ 0).</p></div>
+      <div class="card"><h4>Нестационарность</h4><p>Сила памяти меняется во времени: структурные сдвиги у 7 из 10 активов, в кризисы память ослабевает.</p></div>
+      <div class="card"><h4>Прогностическая ценность</h4><p>Локальная оценка памяти улучшает HAR-RV по MSE (10/10) и QLIKE (8/10).</p></div>
+      <div class="card"><h4>Адаптивное внимание</h4><p>Статичные механизмы внимания деградируют при смене режима — нужен Memory-Adaptive Attention.</p></div>
+    </div>
+  </section>
+
+  <!-- ===================== ИСТОЧНИКИ ===================== -->
+  <section id="sources" class="reveal">
+    <div class="sec-head">
+      <span class="num">07</span>
+      <h2>Список использованных источников</h2>
+      <div class="rule"></div>
+    </div>
+    <ol class="refs">
+      <li>Granger, C. W. J. An introduction to long-memory time series models and fractional differencing / C. W. J. Granger, R. Joyeux // Journal of Time Series Analysis. — 1980. — Vol. 1, № 1. — P. 15–29.</li>
+      <li>Baillie, R. T. Fractionally integrated generalized autoregressive conditional heteroskedasticity / R. T. Baillie, T. Bollerslev, H. O. Mikkelsen // Journal of Econometrics. — 1996. — Vol. 74, № 1. — P. 3–30.</li>
+      <li>Corsi, F. A simple approximate long-memory model of realized volatility / F. Corsi // Journal of Financial Econometrics. — 2009. — Vol. 7, № 2. — P. 174–196.</li>
+      <li>Hurst, H. E. Long-term storage capacity of reservoirs / H. E. Hurst // Transactions of the American Society of Civil Engineers. — 1951. — Vol. 116, № 1. — P. 770–799.</li>
+      <li>Geweke, J. The estimation and application of long memory time series models / J. Geweke, S. Porter-Hudak // Journal of Time Series Analysis. — 1983. — Vol. 4, № 4. — P. 221–238.</li>
+      <li>Lo, A. W. Long-term memory in stock market prices / A. W. Lo // Econometrica. — 1991. — Vol. 59, № 5. — P. 1279–1313.</li>
+      <li>Hochreiter, S. Long short-term memory / S. Hochreiter, J. Schmidhuber // Neural Computation. — 1997. — Vol. 9, № 8. — P. 1735–1780.</li>
+      <li>Vaswani, A. Attention is all you need / A. Vaswani [et al.] // Advances in Neural Information Processing Systems. — 2017. — Vol. 30. — P. 5998–6008.</li>
+      <li>Zhou, H. Informer: Beyond efficient transformer for long sequence time-series forecasting / H. Zhou [et al.] // Proceedings of the AAAI Conference on Artificial Intelligence. — 2021. — Vol. 35, № 12. — P. 11106–11115.</li>
+      <li>Nie, Y. A time series is worth 64 words: long-term forecasting with transformers / Y. Nie [et al.] // International Conference on Learning Representations (ICLR). — 2023.</li>
+      <li>Makarava, N. Differentiable neural network layer for estimating Hurst and anomalous diffusion exponents / N. Makarava [et al.] // Journal of Physics A: Mathematical and Theoretical. — 2025. — Vol. 58. — 265002.</li>
+      <li>Csanády, B. Parameter estimation of long memory stochastic processes with deep neural networks / B. Csanády [et al.] // arXiv preprint arXiv:2410.03776. — 2024.</li>
+      <li>Vogl, M. Hurst exponent dynamics of S&amp;P 500 returns / M. Vogl // Chaos, Solitons &amp; Fractals. — 2023. — Vol. 166. — 112884.</li>
+      <li>Banerjee, A. Modelling structural breaks, long memory and stock market volatility: an overview / A. Banerjee, G. Urga // Journal of Econometrics. — 2005. — Vol. 129, № 1–2. — P. 1–34.</li>
+      <li>Kupiec, P. H. Techniques for verifying the accuracy of risk measurement models / P. H. Kupiec // The Journal of Derivatives. — 1995. — Vol. 3, № 2. — P. 73–84.</li>
+      <li>Christoffersen, P. F. Evaluating interval forecasts / P. F. Christoffersen // International Economic Review. — 1998. — Vol. 39, № 4. — P. 841–862.</li>
+      <li>Основы информационных технологий : учеб.-практ. пособие / А. М. Седун [и др.]. — Минск : БГЭУ, 2010. — 145 с.</li>
+      <li>Харин, Ю. С. Компьютерный анализ данных. Статистические модели и методы : учебник / Ю. С. Харин [и др.]. — Минск : БГУ, 2025. — 455 с.</li>
+    </ol>
+  </section>
+
+</main>
+
+<footer>
+  <div class="f-title">Бондаренко Дарья Дмитриевна</div>
+  <p>Кафедра теории вероятностей и математической статистики · БГУ, факультет прикладной математики и информатики</p>
+  <p>Научный руководитель — С. Н. Сталевская, кандидат физико-математических наук · Минск, 2026</p>
+  <div class="links">
+    <a href="#about">О работе</a>
+    <a href="#results">Результаты</a>
+    <a href="#sources">Источники</a>
+  </div>
+</footer>
+
+<script>
+
+
+
+
+  // reveal on scroll
+  const io = new IntersectionObserver((es) => {
+    es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // scrollspy
+  const links = [...document.querySelectorAll('nav a')];
+  const secs = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const spy = new IntersectionObserver((es) => {
+    es.forEach(e => {
+      if (e.isIntersecting) {
+        links.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id));
+      }
+    });
+  }, { rootMargin: '-45% 0px -50% 0px' });
+  secs.forEach(s => spy.observe(s));
+
+  // counters
+  function animateCount(el) {
+    const target = parseFloat(el.dataset.count), dec = parseInt(el.dataset.dec || '0'), dur = 1200, start = performance.now();
+    function tick(now) {
+      const t = Math.min(1, (now - start) / dur), eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = (target * eased).toFixed(dec).replace('.', ',');
+      if (t < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+  const cio = new IntersectionObserver((es) => {
+    es.forEach(e => { if (e.isIntersecting) { animateCount(e.target); cio.unobserve(e.target); } });
+  }, { threshold: 0.5 });
+  document.querySelectorAll('[data-count]').forEach(el => cio.observe(el));
+
+  // multi-head attention demo
+  const LAGS = 32;
+  const heads = {
+    head1: { color: 'linear-gradient(180deg,#7FB2D9,#4A8FC7)', f: k => Math.exp(-k / 4) },
+    head2: { color: 'linear-gradient(180deg,#255C8B,#0E4B74)', f: (k, d) => Math.pow(k, 2 * d - 1) },
+    head3: { color: 'linear-gradient(180deg,#A9C9E4,#7FB2D9)', f: k => (k % 7 === 0 ? 1 : 0.08) },
+    head4: { color: 'linear-gradient(180deg,#E0B252,#C0764B)', f: k => (k === 4 || k === 18 ? 1 : 0.1) },
+  };
+  const headBars = {};
+  Object.keys(heads).forEach(id => {
+    const row = document.getElementById(id);
+    const bars = [];
+    for (let i = 0; i < LAGS; i++) { const b = document.createElement('div'); b.className = 'bar'; row.appendChild(b); bars.push(b); }
+    headBars[id] = bars;
+  });
+  const slider = document.getElementById('dSlider');
+  const dVal = document.getElementById('dVal');
+  function renderHeads(d) {
+    Object.keys(heads).forEach(id => {
+      const { color, f } = heads[id];
+      const weights = [];
+      for (let k = 1; k <= LAGS; k++) weights.push(id === 'head2' ? f(k, d) : f(k));
+      const max = Math.max(...weights);
+      headBars[id].forEach((bar, i) => {
+        bar.style.height = (Math.max(5, (weights[i] / max) * 100)) + '%';
+        bar.style.opacity = (0.3 + 0.7 * weights[i] / max).toFixed(2);
+        bar.style.background = color;
+      });
+    });
+    dVal.textContent = d.toFixed(2).replace('.', ',');
+  }
+  slider.addEventListener('input', () => renderHeads(parseFloat(slider.value)));
+  renderHeads(0.45);
+
+  // model comparison chart
+  const MODELS = [
+    { name: 'Standard Transformer', color: '#255C8B', rmse: 1.299, mae: 1.008, r2: 0.9838, da: 53.1 },
+    { name: 'MultiFeature Transformer', color: '#4A8FC7', rmse: 0.762, mae: 0.520, r2: 0.9944, da: 52.8 },
+    { name: 'ProbSparse Transformer', color: '#0E4B74', rmse: 0.699, mae: 0.378, r2: 0.9953, da: 52.3 },
+    { name: 'LSTM', color: '#7FB2D9', rmse: 5.35, mae: 3.62, r2: 0.945, da: 51.4 },
+    { name: 'XGBoost', color: '#B4C9DA', rmse: 8.95, mae: 6.42, r2: 0.847, da: 50.9 },
+    { name: 'Random Forest', color: '#D3E0EA', rmse: 9.90, mae: 7.45, r2: 0.813, da: 50.6 },
+    { name: 'ARFIMA', color: '#1B3A57', rmse: 1.29, mae: 0.91, r2: 0.995, da: 54.7 },
+  ];
+  const METRIC_LABEL = { rmse: 'RMSE', mae: 'MAE', r2: 'R²', da: 'DA, %' };
+  let metric = 'rmse';
+  const visible = Object.fromEntries(MODELS.map(m => [m.name, true]));
+  const toggleGroup = document.getElementById('toggles');
+  MODELS.forEach(m => {
+    const label = document.createElement('label');
+    label.className = 'toggle on';
+    label.innerHTML = `<input type="checkbox" checked data-model="${m.name}"> <span>${m.name}</span>`;
+    label.querySelector('input').addEventListener('change', (e) => {
+      visible[m.name] = e.target.checked;
+      label.classList.toggle('on', e.target.checked);
+      renderChart();
+    });
+    toggleGroup.appendChild(label);
+  });
+  document.querySelectorAll('.metric-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.metric-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      metric = btn.dataset.metric;
+      renderChart();
+    });
+  });
+  const chartEl = document.getElementById('chart');
+  const chartNote = document.getElementById('chartNote');
+  const HIGHER_BETTER = { r2: true, da: true };
+  function renderChart() {
+    const shown = MODELS.filter(m => visible[m.name]);
+    const maxV = Math.max(...shown.map(m => m[metric])) || 1;
+    chartEl.innerHTML = '';
+    shown.forEach(m => {
+      const v = m[metric];
+      const row = document.createElement('div');
+      row.className = 'chart-row';
+      row.innerHTML = `
+        <div class="name">${m.name}</div>
+        <div class="track"><div class="fill" style="width:${(v / maxV * 100).toFixed(1)}%;background:${m.color};"></div></div>
+        <div class="val">${metric === 'r2' ? v.toFixed(3).replace('.', ',') : v.toFixed(2).replace('.', ',')}</div>`;
+      chartEl.appendChild(row);
+    });
+    chartNote.textContent = HIGHER_BETTER[metric]
+      ? `Метрика «${METRIC_LABEL[metric]}»: чем больше, тем лучше.`
+      : `Метрика «${METRIC_LABEL[metric]}»: чем меньше, тем лучше. Трансформеры заметно опережают LSTM и ансамблевые модели; ARFIMA точна на один шаг, но деградирует на длинных горизонтах.`;
+  }
+  renderChart();
+
+  // VaR / ES interactive
+  const DIST = {
+    normal: { var: z => 1.6449 * z, es: z => 2.0627 * z },
+    t5: { var: z => 2.0150 * z, es: z => 2.8902 * z },
+    t3: { var: z => 2.3534 * z, es: z => 3.8757 * z },
+  };
+  let dist = 'normal';
+  const sigmaEl = document.getElementById('sigma');
+  const alphaEl = document.getElementById('alpha');
+  const sigmaVal = document.getElementById('sigmaVal');
+  const alphaVal = document.getElementById('alphaVal');
+  const varOut = document.getElementById('varOut');
+  const esOut = document.getElementById('esOut');
+  const varLabel = document.getElementById('varLabel');
+  function renderVar() {
+    const d = DIST[dist];
+    const sigma = parseFloat(sigmaEl.value);
+    const alpha = parseFloat(alphaEl.value) / 100;
+    const varV = d.var(sigma), esV = d.es(sigma);
+    const f = (x, dec) => x.toFixed(dec).replace('.', ',');
+    varOut.textContent = f(varV, 2) + ' %';
+    esOut.textContent = f(esV, 2) + ' %';
+    varLabel.textContent = `VaR(${f(alpha * 100, 1)} %) = ${f(varV, 2)} %`;
+    sigmaVal.textContent = f(sigma, 2) + ' %';
+    alphaVal.textContent = f(alpha * 100, 1) + ' %';
+  }
+  sigmaEl.addEventListener('input', renderVar);
+  alphaEl.addEventListener('input', renderVar);
+  document.querySelectorAll('[data-dist]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-dist]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      dist = btn.dataset.dist;
+      renderVar();
+    });
+  });
+  renderVar();
+
+  // tabs (методы + распределения)
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      if (tab.dataset.panel) return;               // вкладки распределений обрабатываются выше
+      document.querySelectorAll('.tab').forEach(t => { if (!t.dataset.dist) t.classList.remove('active'); });
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+
+
+
+</script>
+</body>
+</html>

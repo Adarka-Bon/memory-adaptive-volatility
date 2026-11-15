@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Данные и временные файлы
+*.log
+~$*
+page-*.png
+pg-*.png
+ch-*.png
+.DS_Store
+Thumbs.db
+
+# Служебное
+*.aux
+*.out
+*.toc
+*.idx
+*.synctex.gz
