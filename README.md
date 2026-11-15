@@ -1,74 +1,100 @@
-# Адаптивная длинная память в прогнозе волатильности
+# Adaptive Long Memory for Volatility Forecasting
 
-**Трансформерные архитектуры с адаптивным механизмом длинной памяти для прогнозирования волатильности финансовых временных рядов и оценки рыночного риска.**
+**Transformer architectures with an adaptive long-memory mechanism for forecasting financial
+time-series volatility and assessing market risk.**
 
-Магистерская работа, кафедра теории вероятностей и математической статистики,
-факультет прикладной математики и информатики, БГУ.
-Научный руководитель — С. Н. Сталевская, кандидат физико-математических наук.
+Master's thesis, Department of Probability Theory and Mathematical Statistics,
+Faculty of Applied Mathematics and Informatics, Belarusian State University (BSU).
+Supervisor: S. N. Stalevskaya, PhD in Physics and Mathematics.
 
-## О чём работа
-
-Волатильность обладает эффектом **длинной памяти**: автокорреляции затухают по степенному
-закону, поэтому влияние прошлого сохраняется на больших горизонтах. Ключевой результат
-исследования — эта память **нестационарна**: она «дышит» во времени и схлопывается в кризисы.
-
-Локальная оценка силы памяти `d̂(t)` несёт самостоятельную прогностическую ценность и
-управляет вниманием трансформера — предложен механизм **Memory-Adaptive Attention**.
-
-| Результат | Значение |
+| | |
 |---|---|
-| Память в волатильности | d ∈ [0,42; 0,56], H ≈ 0,90–0,95 |
-| Память в доходностях | d ≈ 0 (отсутствует) |
-| Структурные сдвиги d(t) | 7 из 10 активов (CUSUM) |
-| Память в кризисные периоды | d: 0,52 → 0,45 |
-| HAR-RV + локальная память | MSE +7,1 % (10/10), QLIKE +1,8 % (8/10) |
-| Деградация ProbSparse | RMSE +143 % в режиме высокой памяти |
+| **Thesis text** | [`docs/thesis_Bondarenko.docx`](docs/thesis_Bondarenko.docx) · [PDF](docs/thesis_Bondarenko.pdf) |
+| **Slides** | [`docs/slides_referat.pptx`](docs/slides_referat.pptx) · [PDF](docs/slides_referat.pdf) |
+| **Interactive site** | **<https://adarka-bon.github.io/>** |
+| **Notebook with results** | [`notebooks/01_results_and_interpretation.ipynb`](notebooks/01_results_and_interpretation.ipynb) |
+| **Conference paper** | [`paper/`](paper) (CTDA'2026, pp. 462–465) |
 
-## Что внутри
+## Research question
+
+Volatility of financial series shows **long memory**: autocorrelations decay as a power law, so
+the influence of the past survives over long horizons. The central finding of this work is that
+this memory is **non-stationary** — it "breathes" over time and collapses during crises. A local
+estimate of the memory strength `d̂(t)` therefore carries independent predictive value and can
+steer the attention of a transformer — the proposed **Memory-Adaptive Attention**.
+
+## Key results
+
+| Result | Value |
+|---|---|
+| Memory in realized volatility | d ∈ [0.42; 0.56], H ≈ 0.90–0.95 |
+| Memory in returns | d ≈ 0 (absent) |
+| Structural breaks in d(t) | 7 of 10 assets (CUSUM test) |
+| Memory during crises | d: 0.52 → 0.45 |
+| HAR-RV + local memory | MSE +7.1 % (10/10 assets), QLIKE +1.8 % (8/10) |
+| ProbSparse degradation | RMSE +143 % in the high-memory regime |
+
+Data: daily quotes of 10 assets over 2019–2023 — stocks (META, BA, JPM, AAPL, MSFT),
+crypto (BTC, ETH) and FX pairs (EURUSD, USDJPY, GBPUSD), covering three crisis episodes
+(COVID-19 2020, rate-hike cycle 2022, banking stress 2023).
+
+## The notebook
+
+`notebooks/01_results_and_interpretation.ipynb` rebuilds **every figure and table of the thesis
+from the committed CSV results** and explains what each number means — from the localization of
+long memory up to the VaR/ES part. It runs in seconds and needs no heavy computation:
+
+```bash
+pip install -r requirements.txt
+jupyter notebook notebooks/01_results_and_interpretation.ipynb
+```
+
+## Repository layout
 
 ```
 memory-adaptive-volatility/
-├── src/                    # конвейер анализа
-│   ├── config.py               # активы, кризисные периоды, параметры окна
-│   ├── download_data.py        # загрузка дневных котировок (yfinance)
-│   ├── data_utils.py           # доходности и реализованная волатильность
-│   ├── memory_estimators.py    # скользящие оценки R/S и GPH
-│   ├── structural_breaks.py    # CUSUM-тест, тест Уэлча, бутстрэп
-│   ├── har_memory.py           # HAR-RV против HAR-RV с локальной памятью
-│   ├── make_figures_en.py      # графики и таблицы отчёта
-│   └── make_paper_assets.py    # рисунки и сводные таблицы
-├── src_attention/          # сравнение механизмов внимания (Standard, ProbSparse, MultiFeature)
-├── data/                   # дневные котировки 10 активов за 2019–2023 гг.
-├── results/                # CSV-результаты всех экспериментов
-├── figures/                # рисунки отчёта
-├── site/                   # персональный сайт по теме работы
-├── docs/                   # презентация к реферату (PPTX и PDF)
-└── paper/                  # материалы конференции CTDA'2026
+├── notebooks/             # executed notebook: results + interpretation
+├── src/                    # analysis pipeline
+│   ├── config.py               # assets, crisis windows, estimator settings
+│   ├── download_data.py        # daily quotes via yfinance
+│   ├── data_utils.py           # returns and realized volatility
+│   ├── memory_estimators.py    # rolling R/S and GPH estimators
+│   ├── structural_breaks.py    # CUSUM test, Welch test, bootstrap
+│   ├── har_memory.py           # HAR-RV vs HAR-RV with local memory
+│   ├── make_figures_en.py      # figures and report tables
+│   └── make_paper_assets.py    # summary figures and tables
+├── src_attention/          # attention mechanism regimes (Standard, ProbSparse, MultiFeature)
+├── data/                   # daily quotes of the 10 assets, 2019–2023
+├── results/                # CSV results of every experiment
+├── figures/                # report and notebook figures
+├── site/                   # personal site (interactive demos)
+├── docs/                   # thesis text and slide deck
+└── paper/                  # conference materials, CTDA'2026
 ```
 
-## Как воспроизвести
+## Reproducing the results
 
 ```bash
 pip install -r requirements.txt
 
-python src/download_data.py             # загрузка котировок
-python src/plot_rolling.py              # скользящие оценки d(t), H(t)
-python src/structural_breaks.py         # CUSUM-диагностика и режимы
-python src/har_memory.py                # эксперимент HAR-RV
-python src_attention/attention_regimes.py   # режимы внимания
-python src/make_paper_assets.py         # рисунки и таблицы
+python src/download_data.py                 # download quotes
+python src/plot_rolling.py                  # rolling d(t), H(t) + summary
+python src/structural_breaks.py             # CUSUM diagnostics and regimes
+python src/har_memory.py                    # HAR-RV experiment
+python src_attention/attention_regimes.py   # attention regimes
+python src/make_paper_assets.py             # figures and tables
 ```
 
-Персональный сайт открывается локально: `site/index.html` (интерактивные карты внимания,
-сравнение моделей, расчёт VaR/ES).
+Open `site/index.html` locally for the interactive demos: attention-head maps with a memory-strength
+slider, a seven-model comparison across four metrics, and an interactive VaR/ES calculator.
 
-## Публикация
+## Publication
 
-1. Бондаренко, Д. Д. Трансформерные архитектуры для прогнозирования временных рядов с длинной
-   памятью / Д. Д. Бондаренко // Компьютерные технологии и анализ данных (CTDA'2026) : материалы
-   V Международной научно-практической конференции, Минск, 23–24 апр. 2026 г. / Бел. гос. ун-т ;
-   редкол.: В. В. Скакун (гл. ред.), Н. Н. Яцков, В. В. Гринёв. – Минск : БГУ, 2026. – С. 462–465.
+1. Bondarenko, D. D. *Transformer architectures for forecasting time series with long memory* /
+   D. D. Bondarenko // Computer Technologies and Data Analysis (CTDA'2026) : proceedings of the V
+   International Scientific and Practical Conference, Minsk, 23–24 Apr. 2026 / BSU ; ed. by
+   V. V. Skakun (ed.-in-chief), N. N. Yatskov, V. V. Grinyov. – Minsk : BSU, 2026. – P. 462–465.
 
-## Лицензия
+## License
 
-MIT — см. [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
